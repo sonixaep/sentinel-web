@@ -2,7 +2,7 @@
 
 > Browser-based dashboard for the Sentinel ecosystem. Full analytics, timelines, and real-time monitoring — accessible from any device, no Vencord required.
 
-**Live at:** [sentinel-web-v1.vercel.app](https://sentinel-web-v1.vercel.app)
+**Live at:** [sentinel-panel.vercel.app](https://sentinel-panel.vercel.app)
 
 Part of the [Sentinel](https://github.com/Privex-chat/sentinel) project.
 
