@@ -67,16 +67,16 @@ export function DiscordId({
           }
         </button>
         {showLink && (
-          
+        <a
             href={getUrl()}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="rounded p-0.5 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
             title="Open in Discord"
-          >
+        >
             <ExternalLink className="h-3 w-3" />
-          </a>
+        </a>
         )}
       </span>
     </span>
