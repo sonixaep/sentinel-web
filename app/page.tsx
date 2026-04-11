@@ -82,7 +82,10 @@ export default function DashboardPage() {
                     <Button asChild variant="outline" className="w-full sm:w-auto">
                       <Link href="/settings">Check Settings</Link>
                     </Button>
-                    <Button onClick={() => window.location.reload()} className="w-full sm:w-auto">
+                    <Button
+                      onClick={() => window.location.reload()}
+                      className="w-full sm:w-auto"
+                    >
                       Retry Connection
                     </Button>
                   </div>
@@ -116,7 +119,7 @@ export default function DashboardPage() {
         {/* Stats */}
         <StatsOverview />
 
-        {/* Main grid: stacked on mobile, side-by-side on desktop */}
+        {/* Main grid */}
         <div className="grid gap-4 md:gap-6 xl:grid-cols-3">
           {/* Targets section */}
           <div className="xl:col-span-2 space-y-3">
@@ -162,9 +165,12 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Live feed */}
+          {/* Live feed — now receives targetStatuses for name resolution */}
           <div>
-            <LiveFeed events={recentEvents} />
+            <LiveFeed
+              events={recentEvents}
+              targetStatuses={targetStatuses}
+            />
           </div>
         </div>
       </div>
