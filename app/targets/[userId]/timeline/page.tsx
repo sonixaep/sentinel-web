@@ -178,8 +178,8 @@ export default function TimelinePage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {discordUrl && (
-                      
+                  {discordUrl && (
+                      <a
                         href={discordUrl}
                         target="_blank"
                         rel="noopener noreferrer"
