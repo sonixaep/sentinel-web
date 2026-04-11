@@ -23,9 +23,6 @@ interface Settings {
   showDesktopNotifications: boolean
 }
 
-// Always start with safe server-side defaults so the initial SSR render and
-// the client hydration render are identical.  localStorage is read in a
-// useEffect below after hydration, which avoids the mismatch warning.
 const INITIAL_SETTINGS: Settings = {
   sentinelUrl:               "http://localhost:48923",
   sentinelToken:             "",
@@ -48,11 +45,30 @@ interface SentinelContextValue {
   refreshTargets:  () => Promise<void>
   addTarget:       (userId: string, label?: string) => Promise<void>
   removeTarget:    (userId: string) => Promise<void>
+  updateTarget:    (userId: string, data: { label?: string; notes?: string; priority?: number; active?: boolean }) => Promise<void>
   isLoading:       boolean
   error:           string | null
 }
 
 const SentinelContext = createContext<SentinelContextValue | null>(null)
+
+// ── localStorage helpers ───────────────────────────────────────────────────────
+
+const LS_KEYS = {
+  url:      "sentinel_url",
+  token:    "sentinel_token",
+  interval: "sentinel_refresh_interval",
+  sse:      "sentinel_sse",
+  notifs:   "sentinel_notifications",
+} as const
+
+function lsGet(key: string): string | null {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+
+function lsSet(key: string, value: string): void {
+  try { localStorage.setItem(key, value) } catch { /* ignore */ }
+}
 
 // ── Provider ───────────────────────────────────────────────────────────────────
 
@@ -68,30 +84,35 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
   const [isLoading,      setIsLoading]      = useState(false)
   const [error,          setError]          = useState<string | null>(null)
 
-  // Used to debounce cacheVersion increments triggered by SSE events.
-  // Without this, every incoming event would invalidate all useApi caches and
-  // trigger a cascade of refetches across every open tab/component.
   const cacheDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Hydrate settings from localStorage (client-only, after first render) ────
+  // ── Hydrate settings from localStorage ─────────────────────────────────────
   useEffect(() => {
-    try {
-      const savedUrl   = localStorage.getItem("sentinel_url")
-      const savedToken = localStorage.getItem("sentinel_token")
-      if (savedUrl || savedToken) {
-        setSettings((s) => ({
-          ...s,
-          sentinelUrl:   savedUrl   || s.sentinelUrl,
-          sentinelToken: savedToken || s.sentinelToken,
-        }))
+    const savedUrl      = lsGet(LS_KEYS.url)
+    const savedToken    = lsGet(LS_KEYS.token)
+    const savedInterval = lsGet(LS_KEYS.interval)
+    const savedSSE      = lsGet(LS_KEYS.sse)
+    const savedNotifs   = lsGet(LS_KEYS.notifs)
+
+    const updates: Partial<Settings> = {}
+    if (savedUrl)                  updates.sentinelUrl = savedUrl
+    if (savedToken)                updates.sentinelToken = savedToken
+    if (savedInterval) {
+      const parsed = parseInt(savedInterval, 10)
+      if (!isNaN(parsed) && parsed >= 5 && parsed <= 300) {
+        updates.dashboardRefreshInterval = parsed
       }
-    } catch {
-      // localStorage not available (e.g. private browsing restrictions)
+    }
+    if (savedSSE   !== null) updates.enableSSE                = savedSSE === "true"
+    if (savedNotifs !== null) updates.showDesktopNotifications = savedNotifs === "true"
+
+    if (Object.keys(updates).length > 0) {
+      setSettings((s) => ({ ...s, ...updates }))
     }
     setHydrated(true)
   }, [])
 
-  // ── Keep API config in sync with settings ──────────────────────────────────
+  // ── Keep API config in sync ─────────────────────────────────────────────────
   useEffect(() => {
     setApiConfig(settings.sentinelUrl, settings.sentinelToken)
   }, [settings.sentinelUrl, settings.sentinelToken])
@@ -99,22 +120,22 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
   const updateSettings = useCallback((newSettings: Partial<Settings>) => {
     setSettings((prev) => {
       const updated = { ...prev, ...newSettings }
-      try {
-        if (newSettings.sentinelUrl   !== undefined) localStorage.setItem("sentinel_url",   newSettings.sentinelUrl)
-        if (newSettings.sentinelToken !== undefined) localStorage.setItem("sentinel_token", newSettings.sentinelToken)
-      } catch { /* ignore */ }
+      if (newSettings.sentinelUrl               !== undefined) lsSet(LS_KEYS.url,      newSettings.sentinelUrl)
+      if (newSettings.sentinelToken             !== undefined) lsSet(LS_KEYS.token,    newSettings.sentinelToken)
+      if (newSettings.dashboardRefreshInterval  !== undefined) lsSet(LS_KEYS.interval, String(newSettings.dashboardRefreshInterval))
+      if (newSettings.enableSSE                 !== undefined) lsSet(LS_KEYS.sse,      String(newSettings.enableSSE))
+      if (newSettings.showDesktopNotifications  !== undefined) lsSet(LS_KEYS.notifs,   String(newSettings.showDesktopNotifications))
       return updated
     })
   }, [])
 
-  // ── Parallel target + status fetch ────────────────────────────────────────
+  // ── Target fetch helpers ────────────────────────────────────────────────────
   const refreshTargets = useCallback(async () => {
     if (!settings.sentinelToken) return
     try {
       const targetList = await api.getTargets()
       setTargets(targetList)
 
-      // Fetch all statuses concurrently — sequential was O(n) round-trips
       const results = await Promise.allSettled(
         targetList.map((t) => api.getTargetStatus(t.user_id))
       )
@@ -149,8 +170,19 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
     [refreshTargets]
   )
 
+  const updateTarget = useCallback(
+    async (
+      userId: string,
+      data: { label?: string; notes?: string; priority?: number; active?: boolean }
+    ) => {
+      await api.updateTarget(userId, data)
+      api.clearCacheForTarget(userId)
+      await refreshTargets()
+    },
+    [refreshTargets]
+  )
+
   // ── Initial connection + periodic status check ─────────────────────────────
-  // Wait for hydration so we have the real token before attempting to connect.
   useEffect(() => {
     if (!hydrated) return
     if (!settings.sentinelToken) {
@@ -198,7 +230,7 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
     }
   }, [hydrated, settings.sentinelToken, refreshTargets])
 
-  // ── Periodic target-status refresh ────────────────────────────────────────
+  // ── Periodic target-status refresh ─────────────────────────────────────────
   useEffect(() => {
     if (!connected || targets.length === 0) return
 
@@ -218,7 +250,7 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval)
   }, [connected, targets, settings.dashboardRefreshInterval])
 
-  // ── SSE live event stream ──────────────────────────────────────────────────
+  // ── SSE live event stream ───────────────────────────────────────────────────
   useEffect(() => {
     if (!settings.enableSSE || !settings.sentinelToken || !connected) return
 
@@ -238,17 +270,15 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
         abortController = new AbortController()
 
         const response = await fetch(url, {
-          headers:  { Authorization: `Bearer ${token}` },
-          signal:   abortController.signal,
-          // Tell the browser not to buffer the response
-          cache:    "no-store",
+          headers: { Authorization: `Bearer ${token}` },
+          signal:  abortController.signal,
+          cache:   "no-store",
         })
 
         if (!response.ok || !response.body) {
           throw new Error(`SSE connection failed: ${response.status}`)
         }
 
-        // Successful connection — reset backoff
         reconnectDelay = 1_000
 
         const reader  = response.body.getReader()
@@ -267,14 +297,22 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
             if (!line.startsWith("data: ")) continue
             try {
               const raw = JSON.parse(line.slice(6))
-              // Skip the initial "connected" handshake message
               if (raw?.type === "connected") continue
 
               const data = raw as SSEEvent
-              setRecentEvents((prev) => [data, ...prev].slice(0, 100))
 
-              // Invalidate caches for the affected target only, debounced so
-              // a burst of events doesn't trigger a refetch storm.
+              setRecentEvents((prev) => {
+                // Deduplication: skip if same type+target within 500ms
+                const isDuplicate = prev.some(
+                  (e) =>
+                    e.event_type === data.event_type &&
+                    e.target_id === data.target_id &&
+                    Math.abs(e.timestamp - data.timestamp) < 500
+                )
+                if (isDuplicate) return prev
+                return [data, ...prev].slice(0, 100)
+              })
+
               if (cacheDebounceRef.current) clearTimeout(cacheDebounceRef.current)
               cacheDebounceRef.current = setTimeout(() => {
                 if (data.target_id) api.clearCacheForTarget(data.target_id)
@@ -289,7 +327,6 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
         if (stopped) return
         if ((e as Error).name === "AbortError") return
 
-        // Exponential back-off before reconnecting
         reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY)
         console.warn(`SSE disconnected, reconnecting in ${reconnectDelay}ms`)
         reconnectTimeout = setTimeout(connect, reconnectDelay)
@@ -300,8 +337,8 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
 
     return () => {
       stopped = true
-      if (abortController)    abortController.abort()
-      if (reconnectTimeout)   clearTimeout(reconnectTimeout)
+      if (abortController)          abortController.abort()
+      if (reconnectTimeout)         clearTimeout(reconnectTimeout)
       if (cacheDebounceRef.current) clearTimeout(cacheDebounceRef.current)
     }
   }, [settings.enableSSE, settings.sentinelToken, connected])
@@ -320,6 +357,7 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
         refreshTargets,
         addTarget,
         removeTarget,
+        updateTarget,
         isLoading,
         error,
       }}
