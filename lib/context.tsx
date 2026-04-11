@@ -302,13 +302,52 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
               const data = raw as SSEEvent
 
               setRecentEvents((prev) => {
-                // Deduplication: skip if same type+target within 500ms
-                const isDuplicate = prev.some(
-                  (e) =>
-                    e.event_type === data.event_type &&
-                    e.target_id === data.target_id &&
-                    Math.abs(e.timestamp - data.timestamp) < 500
-                )
+                const isDuplicate = prev.some((e) => {
+                  if (e.event_type !== data.event_type || e.target_id !== data.target_id) return false
+               
+                  // For presence/status events: same newStatus within 60 s = duplicate
+                  if (
+                    data.event_type === "PRESENCE_UPDATE" ||
+                    data.event_type === "INITIAL_PRESENCE" ||
+                    data.event_type === "PLATFORM_SWITCH"
+                  ) {
+                    const eD = (typeof e.data === "string" ? JSON.parse(e.data) : e.data ?? {}) as Record<string, unknown>
+                    const dD = (typeof data.data === "string" ? JSON.parse(data.data) : data.data ?? {}) as Record<string, unknown>
+                    return (
+                      eD?.newStatus === dD?.newStatus &&
+                      eD?.platform  === dD?.platform  &&
+                      Math.abs(e.timestamp - data.timestamp) < 60_000
+                    )
+                  }
+               
+                  // For activity events: same name within 30 s = duplicate
+                  if (
+                    data.event_type === "ACTIVITY_START" ||
+                    data.event_type === "ACTIVITY_END"   ||
+                    data.event_type === "SPOTIFY_START"  ||
+                    data.event_type === "SPOTIFY_END"
+                  ) {
+                    const eD = (typeof e.data === "string" ? JSON.parse(e.data) : e.data ?? {}) as Record<string, unknown>
+                    const dD = (typeof data.data === "string" ? JSON.parse(data.data) : data.data ?? {}) as Record<string, unknown>
+                    return (
+                      (eD?.name ?? eD?.song) === (dD?.name ?? dD?.song) &&
+                      Math.abs(e.timestamp - data.timestamp) < 30_000
+                    )
+                  }
+               
+                  // For message/voice events: 5 s window
+                  if (
+                    data.event_type === "MESSAGE_CREATE" ||
+                    data.event_type === "VOICE_JOIN"     ||
+                    data.event_type === "VOICE_LEAVE"
+                  ) {
+                    return Math.abs(e.timestamp - data.timestamp) < 5_000
+                  }
+               
+                  // Default: 3 s window
+                  return Math.abs(e.timestamp - data.timestamp) < 3_000
+                })
+               
                 if (isDuplicate) return prev
                 return [data, ...prev].slice(0, 100)
               })
