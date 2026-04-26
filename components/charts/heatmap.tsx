@@ -1,7 +1,7 @@
 /* components/charts/heatmap.tsx */
 "use client"
 
-import { useState } from "react"
+import { Fragment, useState } from "react"
 
 interface HeatmapProps {
   data: number[][]
@@ -23,9 +23,9 @@ export function Heatmap({
 }: HeatmapProps) {
   const [tooltip, setTooltip] = useState<{ row: number; col: number } | null>(null)
 
-  const max     = maxOverride ?? Math.max(...data.flat(), 1)
-  const rows    = rowLabels ?? DEFAULT_ROWS
-  const cols    = colLabels ?? DEFAULT_COLS
+  const max  = maxOverride ?? Math.max(...data.flat(), 1)
+  const rows = rowLabels ?? DEFAULT_ROWS
+  const cols = colLabels ?? DEFAULT_COLS
 
   return (
     <div className="overflow-x-auto">
@@ -47,18 +47,15 @@ export function Heatmap({
           </div>
         ))}
 
-        {/* Data rows */}
+        {/* Data rows — Fragment with key fixes the missing-key warning */}
         {data.map((row, rowIdx) => (
-          <>
-            <div
-              key={`lbl-${rowIdx}`}
-              className="flex items-center justify-end pr-2 text-[10px] text-muted-foreground leading-none"
-            >
+          <Fragment key={rowIdx}>
+            <div className="flex items-center justify-end pr-2 text-[10px] text-muted-foreground leading-none">
               {rows[rowIdx]}
             </div>
             {row.map((value, colIdx) => {
-              const opacity  = max > 0 ? value / max : 0
-              const isHover  = tooltip?.row === rowIdx && tooltip?.col === colIdx
+              const opacity = max > 0 ? value / max : 0
+              const isHover = tooltip?.row === rowIdx && tooltip?.col === colIdx
 
               return (
                 <div
@@ -91,7 +88,7 @@ export function Heatmap({
                 </div>
               )
             })}
-          </>
+          </Fragment>
         ))}
       </div>
 

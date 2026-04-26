@@ -25,6 +25,7 @@ import {
   X,
   FileText,
   Settings2,
+  Download,
 } from "lucide-react"
 
 const tabs = [
@@ -36,6 +37,7 @@ const tabs = [
   { name: "Briefs",    href: "/briefs",    icon: FileText },
   { name: "Alerts",    href: "/alerts",    icon: Bell },
   { name: "Profile",   href: "/profile",   icon: User },
+  { name: "Backfill",  href: "/backfill",  icon: Download },
   { name: "Config",    href: "/config",    icon: Settings2 },
 ]
 

@@ -16,8 +16,6 @@ import { formatTime, formatDate } from "@/lib/utils"
 import { EVENT_COLORS, EVENT_LABELS, STATUS_COLORS } from "@/lib/types"
 import { Clock, Filter, ChevronLeft, ChevronRight, ExternalLink, Search, Calendar, X } from "lucide-react"
 
-const ALL_EVENT_TYPES = Object.keys(EVENT_LABELS)
-
 export default function TimelinePage() {
   const params  = useParams()
   const userId  = params.userId as string

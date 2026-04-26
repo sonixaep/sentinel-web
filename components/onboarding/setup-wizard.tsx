@@ -9,7 +9,7 @@ import {
   Monitor, Server, Train, ChevronRight, ChevronLeft,
   CheckCircle2, Copy, Check, ExternalLink, Terminal,
   Key, Plug, Rocket, Shield, AlertCircle, Info,
-  Globe, Package, Zap,
+  Package, Zap,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -191,12 +191,12 @@ function DiscordTokenStep({ apiToken }: { apiToken: string }) {
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">5</span>
-            <span>Click the request → <strong>Headers</strong> → look for <code className="rounded bg-secondary px-1 font-mono text-xs">Authorization</code> in Request Headers — that's your token</span>
+            <span>Click the request → <strong>Headers</strong> → look for <code className="rounded bg-secondary px-1 font-mono text-xs">Authorization</code> in Request Headers — that&apos;s your token</span>
           </li>
         </ol>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">
-        Full visual guide: <ExtLink href="https://gist.github.com/MarvNC/e601f3603df22f36ebd3102c501116c6">MarvNC's Token Guide</ExtLink>
+        Full visual guide: <ExtLink href="https://gist.github.com/MarvNC/e601f3603df22f36ebd3102c501116c6">MarvNC&apos;s Token Guide</ExtLink>
       </p>
 
       <Callout type="info">
@@ -222,7 +222,7 @@ function ConnectPanelStep({ apiToken }: { apiToken: string }) {
         <li className="flex items-start gap-3">
           <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary border border-primary/25">2</span>
           <div>
-            <p className="mb-1">Set <strong>Sentinel API URL</strong> to your selfbot's address:</p>
+            <p className="mb-1">Set <strong>Sentinel API URL</strong> to your selfbot&apos;s address:</p>
             <ul className="ml-4 list-disc space-y-1 text-muted-foreground">
               <li>Local: <code className="rounded bg-secondary px-1 font-mono text-xs">http://localhost:48923</code></li>
               <li>VPS: <code className="rounded bg-secondary px-1 font-mono text-xs">http://YOUR_SERVER_IP:48923</code></li>
@@ -533,7 +533,7 @@ function RailwayStepContent({
               Deploy on Railway
             </a>
             <p className="text-xs text-muted-foreground">
-              If the template link doesn't work, fork the repo and deploy via{" "}
+              If the template link doesn&apos;t work, fork the repo and deploy via{" "}
               <ExtLink href="https://railway.app/new">railway.app/new</ExtLink> →
               Deploy from GitHub → select your fork.
             </p>
@@ -596,8 +596,8 @@ function ProgressSidebar({
   return (
     <div className="space-y-1">
       {steps.map((step, i) => {
-        const done    = i <= completedIdx
-        const active  = i === currentIdx
+        const done   = i <= completedIdx
+        const active = i === currentIdx
         return (
           <button
             key={step.id}
@@ -748,7 +748,7 @@ export function SetupWizard() {
             <h2 className="font-semibold text-sm">Step 1 — Generate your API Auth Token</h2>
           </div>
           <p className="mb-4 text-xs text-muted-foreground">
-            This password secures your selfbot API. Generate one now — you'll need it during setup.
+            This password secures your selfbot API. Generate one now — you&apos;ll need it during setup.
           </p>
           <TokenGenerator value={apiToken} onChange={setApiToken} />
         </div>
@@ -830,7 +830,7 @@ export function SetupWizard() {
             <TokenGenerator value={apiToken} onChange={setApiToken} />
           </div>
 
-          {/* Discord token (optional here, for env builder preview) */}
+          {/* Discord token */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-2">
               <Plug className="h-4 w-4 text-chart-3" />

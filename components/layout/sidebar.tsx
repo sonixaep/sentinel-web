@@ -13,7 +13,6 @@ import {
   Activity,
   Shield,
   BookOpen,
-  HelpCircle,
 } from "lucide-react"
 
 const navigation = [
