@@ -63,7 +63,7 @@ export function AddTargetForm({ onClose }: AddTargetFormProps) {
             <div className="flex items-start gap-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2.5 text-xs text-yellow-600 dark:text-yellow-400">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
               <span>
-                <strong>Risky:</strong> You already have {targets.length} targets. Monitoring many users simultaneously increases the chance of Discord flagging your account. The selfbot enforces a 1-per-hour rate limit on new targets.
+                <strong>Risky:</strong> You already have {targets.length} targets. Monitoring many users simultaneously increases the chance of Discord flagging your account. The selfbot enforces a 1-per-15mins rate limit on new targets.
               </span>
             </div>
           )}
