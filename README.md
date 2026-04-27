@@ -4,7 +4,7 @@
 
 **Live at:** [sentinel-panel.vercel.app](https://sentinel-panel.vercel.app)
 
-Part of the [Sentinel](https://github.com/sonixaep/sentinel) project.
+Part of the [Sentinel](https://github.com/Privex-chat/sentinel) project.
 
 ---
 
@@ -32,7 +32,7 @@ No data passes through Vercel or any third party — all API calls go directly f
 3. Enter your **Sentinel API URL** and **API Token**
 4. Save — the dashboard connects automatically
 
-Full guide: [docs/web.md](https://github.com/sonixaep/sentinel/blob/main/docs/web.md)
+Full guide: [docs/web.md](https://github.com/Privex-chat/sentinel/blob/main/docs/web.md)
 
 ---
 
@@ -46,7 +46,7 @@ Full guide: [docs/web.md](https://github.com/sonixaep/sentinel/blob/main/docs/we
 ### Local Development
 
 ```bash
-git clone https://github.com/sonixaep/sentinel-web.git
+git clone https://github.com/Privex-chat/sentinel-web.git
 cd sentinel-web
 pnpm install
 pnpm dev
@@ -87,16 +87,16 @@ Fork the repository and import it into Vercel. No environment variables required
 
 ## Requirements
 
-- A running [sentinel-selfbot](https://github.com/sonixaep/sentinel-selfbot) instance
+- A running [sentinel-selfbot](https://github.com/Privex-chat/sentinel-selfbot) instance
 - The selfbot must be reachable from your browser (local or public URL)
 
 ---
 
 ## Related
 
-- [sentinel-selfbot](https://github.com/sonixaep/sentinel-selfbot) — The data collection engine
-- [sentinel-plugin](https://github.com/sonixaep/sentinel-plugin) — Vencord plugin (Discord-embedded UI)
-- [sentinel-proxy](https://github.com/sonixaep/sentinel-proxy) — Windows proxy for remote selfbot
+- [sentinel-selfbot](https://github.com/Privex-chat/sentinel-selfbot) — The data collection engine
+- [sentinel-plugin](https://github.com/Privex-chat/sentinel-plugin) — Vencord plugin (Discord-embedded UI)
+- [sentinel-proxy](https://github.com/Privex-chat/sentinel-proxy) — Windows proxy for remote selfbot
 
 ---
 

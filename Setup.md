@@ -13,7 +13,7 @@ This guide walks you through setting up the Sentinel web dashboard for local dev
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/sonixaep/sentinel-web.git
+git clone https://github.com/Privex-chat/sentinel-web.git
 cd sentinel-web
 ```
 
