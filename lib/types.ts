@@ -326,7 +326,7 @@ export interface GamingProfileData {
     peakDay: number
   }[]
   totalGamingMs: number
-  peakGamingHour: number
+  peakGamingHour: number | null
   recentlyStarted: string[]
   abandoned: string[]
 }
