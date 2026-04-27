@@ -314,7 +314,7 @@ function LocalStepContent({
         <div>
           <StepHeader num={2} title="Clone the Repository" desc="Download the selfbot source code." />
           <p className="mb-2 text-sm text-muted-foreground">Open a terminal and run:</p>
-          <CodeBlock lang="bash" code={`git clone https://github.com/Privex-chat/sentinel-selfbot.git
+          <CodeBlock lang="bash" code={`git clone https://github.com/sonixaep/sentinel-selfbot.git
 cd sentinel-selfbot
 npm install`} />
           <Callout type="info">
@@ -407,7 +407,7 @@ firewall-cmd --permanent --add-port=48923/tcp && firewall-cmd --reload`} />
       return (
         <div>
           <StepHeader num={2} title="Clone the Repository" desc="Download the selfbot source code onto your server." />
-          <CodeBlock lang="bash" code={`git clone https://github.com/Privex-chat/sentinel-selfbot.git
+          <CodeBlock lang="bash" code={`git clone https://github.com/sonixaep/sentinel-selfbot.git
 cd sentinel-selfbot
 npm install`} />
         </div>
@@ -494,7 +494,7 @@ function RailwayStepContent({
               <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary border border-primary/25">3</span>
               <div>
                 <p>Go to <strong>SQL Editor → New Query</strong>, paste the schema from:</p>
-                <ExtLink href="https://github.com/Privex-chat/sentinel-selfbot/blob/main/sentinel-selfbot/supabase-schema.sql">
+                <ExtLink href="https://github.com/sonixaep/sentinel-selfbot/blob/main/sentinel-selfbot/supabase-schema.sql">
                   sentinel-selfbot/supabase-schema.sql
                 </ExtLink>
                 <p className="mt-1 text-muted-foreground">Run it — all 13 tables will be created.</p>
@@ -546,7 +546,7 @@ function RailwayStepContent({
 
           <h3 className="mb-2 mt-5 font-semibold">Manual deploy (alternative)</h3>
           <ol className="space-y-2 text-sm text-muted-foreground">
-            <li>1. Fork <ExtLink href="https://github.com/Privex-chat/sentinel-selfbot">Privex-chat/sentinel-selfbot</ExtLink> to your GitHub account</li>
+            <li>1. Fork <ExtLink href="https://github.com/sonixaep/sentinel-selfbot">sonixaep/sentinel-selfbot</ExtLink> to your GitHub account</li>
             <li>2. Go to <ExtLink href="https://railway.app/new">railway.app/new</ExtLink> → <strong>Deploy from GitHub repo</strong></li>
             <li>3. Select your forked repo → Railway auto-detects the <code className="rounded bg-secondary px-1 font-mono text-xs">railway.toml</code></li>
           </ol>
