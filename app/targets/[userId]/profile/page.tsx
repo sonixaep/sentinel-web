@@ -85,6 +85,7 @@ export default function ProfilePage() {
             >
               {data
                 .filter((snap) => snap.avatar_hash)
+                .filter((snap, i, arr) => arr.findIndex((s) => s.avatar_hash === snap.avatar_hash) === i)
                 .slice(0, 24)
                 .map((snap, i) => (
                   <a

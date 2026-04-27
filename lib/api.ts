@@ -458,6 +458,10 @@ export const api = {
       30_000
     ),
 
+  // Alert webhook test
+  testAlertWebhook: () =>
+    request<{ success: boolean }>("/api/alerts/test", { method: "POST" }),
+
   // Suppressed alerts
   getSuppressedAlerts: () =>
     request<AlertRule[]>("/api/alerts/rules/suppressed", {}, 10_000),

@@ -335,10 +335,15 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
                     )
                   }
                
-                  // For message/voice events: 5 s window
+                  // For message events: same messageId = duplicate (unique Discord snowflake)
+                  if (data.event_type === "MESSAGE_CREATE") {
+                    const eD = (typeof e.data === "string" ? JSON.parse(e.data) : e.data ?? {}) as Record<string, unknown>
+                    const dD = (typeof data.data === "string" ? JSON.parse(data.data) : data.data ?? {}) as Record<string, unknown>
+                    return eD?.messageId === dD?.messageId
+                  }
+                  // For voice events: 5 s window
                   if (
-                    data.event_type === "MESSAGE_CREATE" ||
-                    data.event_type === "VOICE_JOIN"     ||
+                    data.event_type === "VOICE_JOIN" ||
                     data.event_type === "VOICE_LEAVE"
                   ) {
                     return Math.abs(e.timestamp - data.timestamp) < 5_000
