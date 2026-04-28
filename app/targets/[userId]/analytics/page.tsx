@@ -696,6 +696,7 @@ function SocialForceGraph({
   const [tooltip, setTooltip] = useState<{ connId: string; mx: number; my: number } | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [dragNodeId, setDragNodeId] = useState<string | null>(null)
+  const [pinnedTooltipId, setPinnedTooltipId] = useState<string | null>(null)
 
   // Graph nodes state and ref
   const [nodes, setNodes] = useState<ForceNode[]>([])
@@ -816,6 +817,16 @@ function SocialForceGraph({
     return () => cancelAnimationFrame(animFrameRef.current)
   }, [dragNodeId, size.w, size.h, userId, connections])
 
+
+  const handleOutsideClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    // If the click is not inside the tooltip panel, unpin
+    if (!target.closest('[data-tooltip-panel]')) {
+      setPinnedTooltipId(null)
+    }
+  }
+
+  
   // ── Mouse event handlers for dragging ───
   const handleNodeMouseDown = (e: React.MouseEvent<SVGGElement>, nodeId: string) => {
     if (nodeId === userId) return // don't drag center
@@ -885,6 +896,7 @@ function SocialForceGraph({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onClick={handleOutsideClick}
       >
         <defs>
           <radialGradient id="sg-bg" cx="50%" cy="45%" r="55%">
@@ -951,8 +963,11 @@ function SocialForceGraph({
                 setSelected(node.id)
               }}
               onMouseLeave={() => {
-                setTooltip(null)
-                if (!dragNodeId) setSelected(null)
+                // Only clear tooltip if it's not pinned for this node
+                if (pinnedTooltipId !== node.id) {
+                  setTooltip(null)
+                  if (!dragNodeId) setSelected(null)
+                }
               }}
               onMouseDown={handleNodeMouseDown}
             />
@@ -1011,8 +1026,9 @@ function SocialForceGraph({
       </svg>
 
       {/* ── Hover Tooltip ── */}
-      {tooltip && (() => {
-        const conn    = connections.find((c) => c.userId === tooltip.connId)
+      {(tooltip || pinnedTooltipId) && (() => {
+        const activeId = pinnedTooltipId || tooltip?.connId
+        const conn    = connections.find((c) => c.userId === activeId)
         if (!conn) return null
         const profile = relatedProfiles[conn.userId]
         const name    = profile?.global_name || profile?.username || null
@@ -1022,14 +1038,38 @@ function SocialForceGraph({
           : "var(--color-muted-foreground)"
 
         const ttW = 210
-        const ttX = Math.min(tooltip.mx + 14, size.w - ttW - 6)
-        const ttY = Math.max(8, tooltip.my - 70)
+        // Use tooltip position if available, else fall back when only pinned
+        const ttX = tooltip?.connId === activeId
+          ? Math.min(tooltip.mx + 14, size.w - ttW - 6)
+          : 20
+        const ttY = tooltip?.connId === activeId
+          ? Math.max(8, tooltip.my - 70)
+          : 20
 
         return (
           <div
-            className="absolute pointer-events-none z-20 rounded-xl border border-border/80 bg-popover shadow-2xl p-3"
-            style={{ left: ttX, top: ttY, width: ttW }}
+            data-tooltip-panel
+            className="absolute z-20 rounded-xl border border-border/80 bg-popover shadow-2xl p-3"
+            style={{
+              left: ttX,
+              top: ttY,
+              width: ttW,
+              pointerEvents: pinnedTooltipId ? 'auto' : 'none',
+            }}
           >
+            {/* Close button when pinned */}
+            {pinnedTooltipId && (
+              <button
+                className="absolute top-1.5 right-2 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setPinnedTooltipId(null)}
+                aria-label="Close"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 1l12 12M13 1L1 13" />
+                </svg>
+              </button>
+            )}
+
             {/* Header */}
             <div className="flex items-center gap-2.5 mb-2.5">
               <div
