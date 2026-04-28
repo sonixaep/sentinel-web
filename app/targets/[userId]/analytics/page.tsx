@@ -2,7 +2,7 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Spinner } from "@/components/ui/spinner"
@@ -15,9 +15,13 @@ import { Heatmap } from "@/components/charts/heatmap"
 import { useApi } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
-import { formatMs } from "@/lib/utils"
+import { formatMs, getAvatarUrl, userIdToHue } from "@/lib/utils"
 import { STATUS_COLORS } from "@/lib/types"
-import { BarChart3, Activity, MessageSquare, Mic, Music, Users, Tag, TrendingUp, RefreshCw, Sparkles } from "lucide-react"
+import type { SocialConnection, ProfileSnapshot } from "@/lib/types"
+import {
+  BarChart3, Activity, MessageSquare, Mic, Music, Users, Tag,
+  TrendingUp, RefreshCw, Sparkles, Share2, List,
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
@@ -27,7 +31,6 @@ export default function AnalyticsPage() {
 
   return (
     <Tabs defaultValue="presence">
-      {/* Horizontally scrollable tabs for mobile */}
       <div
         className="overflow-x-auto mb-5 -mx-3 px-3 md:mx-0 md:px-0"
         style={{ scrollbarWidth: "none" }}
@@ -188,7 +191,7 @@ function PresenceTab({ userId }: { userId: string }) {
   )
 }
 
-// ── Activities / gaming ───────────────────────────────────────────────────────
+// ── Activities ────────────────────────────────────────────────────────────────
 
 function ActivitiesTab({ userId }: { userId: string }) {
   const { settings, cacheVersion } = useSentinel()
@@ -269,14 +272,14 @@ function MessagesTab({ userId }: { userId: string }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatCard value={data.totalMessages || 0}                            label="Messages"  color="var(--color-chart-3)" />
-        <StatCard value={data.avgWordCount?.toFixed(1) || 0}                 label="Avg Words" color="var(--color-chart-1)" />
-        <StatCard value={`${((data.editRate || 0) * 100).toFixed(1)}%`}     label="Edit Rate" color="var(--color-status-idle)" />
+        <StatCard value={data.totalMessages || 0}                            label="Messages"    color="var(--color-chart-3)" />
+        <StatCard value={data.avgWordCount?.toFixed(1) || 0}                 label="Avg Words"   color="var(--color-chart-1)" />
+        <StatCard value={`${((data.editRate || 0) * 100).toFixed(1)}%`}     label="Edit Rate"   color="var(--color-status-idle)" />
         <StatCard value={`${((data.deleteRate || 0) * 100).toFixed(1)}%`}   label="Delete Rate" color="var(--color-destructive)" />
         <StatCard value={`${((data.ghostTypeRate || 0) * 100).toFixed(1)}%`} label="Ghost Rate" color="var(--color-chart-4)" />
-        <StatCard value={`${((data.replyRate || 0) * 100).toFixed(1)}%`}    label="Reply Rate" color="var(--color-chart-5)" />
-        <StatCard value={data.avgMessageLength || 0}                         label="Avg Length" color="var(--color-chart-1)" />
-        <StatCard value={(data.vocabularyRichness || 0).toFixed(3)}          label="Vocab"     color="var(--color-chart-3)" />
+        <StatCard value={`${((data.replyRate || 0) * 100).toFixed(1)}%`}    label="Reply Rate"  color="var(--color-chart-5)" />
+        <StatCard value={data.avgMessageLength || 0}                         label="Avg Length"  color="var(--color-chart-1)" />
+        <StatCard value={(data.vocabularyRichness || 0).toFixed(3)}          label="Vocab"       color="var(--color-chart-3)" />
       </div>
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Messages by Hour</CardTitle></CardHeader>
@@ -311,7 +314,6 @@ function VoiceTab({ userId }: { userId: string }) {
   if (error)   return <EmptyState icon={Mic} title="Error" message={error} />
   if (!data)   return <EmptyState icon={Mic} message="No voice data" />
 
-  // Use channel ID as bar label (truncated for chart readability)
   const channelData = (data.preferredChannels || []).slice(0, 10).map((c) => ({
     label: `…${c.channelId.slice(-10)}`,
     value: c.totalMs,
@@ -325,9 +327,8 @@ function VoiceTab({ userId }: { userId: string }) {
         <StatCard value={formatMs(data.totalVoiceMs || 0)}              label="Total Voice"  color="var(--color-status-online)" />
         <StatCard value={data.sessionCount || 0}                         label="Sessions"     color="var(--color-chart-1)" />
         <StatCard value={formatMs(data.avgSessionMs || 0)}               label="Avg Session"  color="var(--color-chart-3)" />
-        <StatCard value={`${((data.muteRatio || 0) * 100).toFixed(0)}%`} label="Muted"        color="var(--color-status-idle)" />
+        <StatCard value={`${((data.muteRatio || 0) * 100).toFixed(0)}%`} label="Muted"       color="var(--color-status-idle)" />
       </div>
-
       <div className="grid gap-4 md:grid-cols-2">
         {channelData.length > 0 && (
           <Card>
@@ -344,8 +345,6 @@ function VoiceTab({ userId }: { userId: string }) {
           </Card>
         )}
       </div>
-
-      {/* Full channel IDs with clickable links */}
       {(data.preferredChannels || []).length > 0 && (
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Channel Details</CardTitle></CardHeader>
@@ -407,10 +406,7 @@ function MusicTab({ userId }: { userId: string }) {
               <Music className="h-5 w-5" style={{ color: "var(--color-spotify)" }} />
             </div>
             <div className="min-w-0">
-              <p
-                className="text-[9px] font-semibold uppercase tracking-widest"
-                style={{ color: "var(--color-spotify)" }}
-              >
+              <p className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-spotify)" }}>
                 Last Played
               </p>
               <p className="font-semibold truncate">{data.recentTrack.song}</p>
@@ -450,7 +446,9 @@ function MusicTab({ userId }: { userId: string }) {
   )
 }
 
-// ── Social ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// SOCIAL GRAPH — Force-directed node graph with profile enrichment
+// ══════════════════════════════════════════════════════════════════════════════
 
 const AI_CLASS_COLORS: Record<string, string> = {
   close_friend:                "var(--color-status-online)",
@@ -462,9 +460,622 @@ const AI_CLASS_COLORS: Record<string, string> = {
   mentee:                      "var(--color-chart-5)",
 }
 
+const AI_CLASS_LABELS: Record<string, string> = {
+  close_friend:                "Close Friend",
+  potential_romantic_interest: "Romantic Interest",
+  acquaintance:                "Acquaintance",
+  colleague:                   "Colleague",
+  rival:                       "Rival",
+  mentor:                      "Mentor",
+  mentee:                      "Mentee",
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface ForceNode {
+  id: string
+  x: number
+  y: number
+  vx: number
+  vy: number
+  radius: number
+  isCenter: boolean
+  score: number
+}
+
+// ── Hook: fetch profiles for a list of user IDs ────────────────────────────
+
+function useRelatedProfiles(
+  userIds: string[],
+  token: string
+): Record<string, ProfileSnapshot | null> {
+  const [profiles, setProfiles] = useState<Record<string, ProfileSnapshot | null>>({})
+  const key = userIds.slice(0, 15).join(",")
+
+  useEffect(() => {
+    if (!userIds.length || !token) return
+    let cancelled = false
+
+    const toFetch = userIds.slice(0, 15)
+    Promise.allSettled(toFetch.map((id) => api.getCurrentProfile(id))).then(
+      (results) => {
+        if (cancelled) return
+        const map: Record<string, ProfileSnapshot | null> = {}
+        results.forEach((r, i) => {
+          map[toFetch[i]] = r.status === "fulfilled" ? r.value : null
+        })
+        setProfiles(map)
+      }
+    )
+
+    return () => {
+      cancelled = true
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, token])
+
+  return profiles
+}
+
+// ── Hook: force-directed layout simulation ─────────────────────────────────
+
+function useForceLayout(
+  centerUserId: string,
+  connections: SocialConnection[],
+  w: number,
+  h: number
+): ForceNode[] {
+  const [nodes, setNodes] = useState<ForceNode[]>([])
+  const nodesRef = useRef<ForceNode[]>([])
+  const rafRef   = useRef<number>(0)
+  const keyRef   = useRef("")
+
+  useEffect(() => {
+    if (!w || !h) return
+
+    cancelAnimationFrame(rafRef.current)
+
+    const displayed = connections.slice(0, 14)
+    const newKey = `${centerUserId}:${displayed.map((c) => c.userId).join(",")}:${w}:${h}`
+    if (keyRef.current === newKey) return
+    keyRef.current = newKey
+
+    const cx        = w / 2
+    const cy        = h / 2
+    const maxScore  = displayed[0]?.score || 1
+    const spread    = Math.min(w, h) * 0.30
+
+    // Seed nodes in a staggered circle
+    const init: ForceNode[] = [
+      {
+        id: centerUserId,
+        x: cx, y: cy,
+        vx: 0, vy: 0,
+        radius: 34,
+        isCenter: true,
+        score: maxScore,
+      },
+      ...displayed.map((conn, i) => {
+        const angle  = (i / Math.max(displayed.length, 1)) * Math.PI * 2 - Math.PI / 2
+        const jitter = 0.80 + Math.random() * 0.40
+        const r      = 13 + (conn.score / maxScore) * 15
+        return {
+          id: conn.userId,
+          x: cx + Math.cos(angle) * spread * jitter,
+          y: cy + Math.sin(angle) * spread * jitter,
+          vx: 0, vy: 0,
+          radius: r,
+          isCenter: false,
+          score: conn.score,
+        }
+      }),
+    ]
+
+    nodesRef.current = init
+    setNodes([...init])
+
+    let iter = 0
+    const MAX = 300
+
+    const tick = () => {
+      iter++
+      if (iter > MAX) {
+        setNodes([...nodesRef.current])
+        return
+      }
+
+      const ns    = nodesRef.current
+      const alpha = Math.pow(Math.max(0, 1 - iter / MAX), 1.4)
+
+      for (let i = 1; i < ns.length; i++) {
+        const n  = ns[i]
+        const cn = ns[0] // center node is always index 0
+
+        // Spring attraction toward center
+        const dx   = cn.x - n.x
+        const dy   = cn.y - n.y
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1
+        const targetDist = 105 + (1 - n.score / maxScore) * 90
+        const sf   = (dist - targetDist) * 0.016 * alpha
+        n.vx += (dx / dist) * sf
+        n.vy += (dy / dist) * sf
+
+        // Repulsion between every pair of nodes
+        for (let j = 0; j < ns.length; j++) {
+          if (i === j) continue
+          const o  = ns[j]
+          const ex = n.x - o.x
+          const ey = n.y - o.y
+          const ed = Math.sqrt(ex * ex + ey * ey) || 0.1
+          const minD = n.radius + o.radius + 22
+          if (ed < minD) {
+            const strength = ((minD - ed) / minD) * 0.9 * Math.max(0.08, alpha)
+            n.vx += (ex / ed) * strength * minD * 0.13
+            n.vy += (ey / ed) * strength * minD * 0.13
+          }
+        }
+
+        // Soft boundary
+        const mg = n.radius + 18
+        if (n.x < mg)     n.vx += (mg - n.x)     * 0.35
+        if (n.x > w - mg) n.vx -= (n.x - w + mg) * 0.35
+        if (n.y < mg)     n.vy += (mg - n.y)     * 0.35
+        if (n.y > h - mg) n.vy -= (n.y - h + mg) * 0.35
+
+        // Integrate + dampen
+        n.vx *= 0.70
+        n.vy *= 0.70
+        n.x  += n.vx
+        n.y  += n.vy
+      }
+
+      if (iter % 4 === 0 || iter >= MAX - 1) {
+        setNodes([...nodesRef.current])
+      }
+
+      rafRef.current = requestAnimationFrame(tick)
+    }
+
+    rafRef.current = requestAnimationFrame(tick)
+
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centerUserId, connections.slice(0, 14).map((c) => c.userId).join(","), w, h])
+
+  return nodes
+}
+
+// ── NodeCircle SVG element ────────────────────────────────────────────────────
+
+function NodeCircle({
+  node,
+  profile,
+  isHighlighted,
+  isDimmed,
+  onMouseEnter,
+  onMouseLeave,
+  onClick,
+}: {
+  node: ForceNode
+  profile: ProfileSnapshot | null
+  isHighlighted: boolean
+  isDimmed: boolean
+  onMouseEnter: (e: React.MouseEvent<SVGGElement>) => void
+  onMouseLeave: () => void
+  onClick: () => void
+}) {
+  const hue      = userIdToHue(node.id)
+  const avatarUrl = profile?.avatar_hash
+    ? getAvatarUrl(node.id, profile.avatar_hash, 128)
+    : null
+  const clipId   = `clip-sg-${node.id.replace(/\D/g, "").slice(-10)}`
+  const filterId = `glow-sg-${node.id.replace(/\D/g, "").slice(-10)}`
+
+  const ringColor = node.isCenter
+    ? "var(--color-primary)"
+    : isHighlighted
+      ? "var(--color-primary)"
+      : "var(--color-border)"
+  const ringWidth = node.isCenter ? 2.5 : isHighlighted ? 2.5 : 1.5
+  const opacity   = isDimmed ? 0.30 : 1
+
+  return (
+    <g
+      style={{ cursor: node.isCenter ? "default" : "pointer", opacity }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={onClick}
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx={node.x} cy={node.y} r={Math.max(1, node.radius - 1)} />
+        </clipPath>
+        {(isHighlighted || node.isCenter) && (
+          <filter id={filterId} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation={node.isCenter ? 5 : 4} result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        )}
+      </defs>
+
+      {/* Outer glow ring for highlighted / center */}
+      {(isHighlighted || node.isCenter) && (
+        <circle
+          cx={node.x} cy={node.y} r={node.radius + (node.isCenter ? 6 : 5)}
+          fill="none"
+          stroke={node.isCenter ? "var(--color-primary)" : "var(--color-chart-1)"}
+          strokeWidth={1}
+          opacity={node.isCenter ? 0.35 : 0.25}
+        />
+      )}
+
+      {/* Background colour fill */}
+      <circle
+        cx={node.x} cy={node.y} r={node.radius}
+        fill={`hsl(${hue}, 50%, 22%)`}
+        filter={isHighlighted || node.isCenter ? `url(#${filterId})` : undefined}
+      />
+
+      {/* Avatar image */}
+      {avatarUrl && (
+        <image
+          href={avatarUrl}
+          x={node.x - node.radius}
+          y={node.y - node.radius}
+          width={node.radius * 2}
+          height={node.radius * 2}
+          clipPath={`url(#${clipId})`}
+          preserveAspectRatio="xMidYMid slice"
+        />
+      )}
+
+      {/* Initials fallback */}
+      {!avatarUrl && (
+        <text
+          x={node.x}
+          y={node.y}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="white"
+          fontSize={Math.max(8, node.radius * 0.52)}
+          fontWeight="700"
+          style={{ userSelect: "none", pointerEvents: "none" }}
+        >
+          {node.id.slice(-2).toUpperCase()}
+        </text>
+      )}
+
+      {/* Border ring */}
+      <circle
+        cx={node.x} cy={node.y} r={node.radius}
+        fill="none"
+        stroke={ringColor}
+        strokeWidth={ringWidth}
+      />
+
+      {/* Center badge dot */}
+      {node.isCenter && (
+        <circle
+          cx={node.x} cy={node.y - node.radius - 7} r={4}
+          fill="var(--color-primary)"
+        />
+      )}
+    </g>
+  )
+}
+
+// ── SocialForceGraph ──────────────────────────────────────────────────────────
+
+function SocialForceGraph({
+  userId,
+  connections,
+  relatedProfiles,
+  targetProfile,
+}: {
+  userId: string
+  connections: SocialConnection[]
+  relatedProfiles: Record<string, ProfileSnapshot | null>
+  targetProfile: ProfileSnapshot | null
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [size, setSize]         = useState({ w: 620, h: 460 })
+  const [tooltip, setTooltip]   = useState<{ connId: string; mx: number; my: number } | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+
+  // Measure container width responsively
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect()
+      const w = Math.max(300, rect.width)
+      setSize({ w, h: Math.min(520, Math.max(370, Math.round(w * 0.64))) })
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const displayed   = connections.slice(0, 14)
+  const nodes       = useForceLayout(userId, displayed, size.w, size.h)
+  const maxScore    = displayed[0]?.score || 1
+  const allProfiles = useMemo(
+    () => ({ ...relatedProfiles, [userId]: targetProfile }),
+    [relatedProfiles, targetProfile, userId]
+  )
+
+  const nodeMap = useMemo(() => {
+    const m: Record<string, ForceNode> = {}
+    nodes.forEach((n) => { m[n.id] = n })
+    return m
+  }, [nodes])
+
+  // Which node is hovered/selected (for dimming others)
+  const activeId = selected
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full rounded-xl overflow-hidden border border-border"
+      style={{
+        background: "radial-gradient(ellipse at 50% 40%, oklch(0.20 0.04 270 / 0.5) 0%, oklch(0.145 0 0) 70%)",
+      }}
+    >
+      <svg width={size.w} height={size.h} style={{ display: "block" }}>
+        <defs>
+          <radialGradient id="sg-bg" cx="50%" cy="45%" r="55%">
+            <stop offset="0%"   stopColor="var(--color-primary)" stopOpacity="0.06" />
+            <stop offset="100%" stopColor="transparent"          stopOpacity="0"    />
+          </radialGradient>
+        </defs>
+        <rect width={size.w} height={size.h} fill="url(#sg-bg)" />
+
+        {/* ── Edges ── */}
+        {displayed.map((conn) => {
+          const src = nodeMap[userId]
+          const tgt = nodeMap[conn.userId]
+          if (!src || !tgt) return null
+
+          const edgeColor = conn.aiClassification
+            ? (AI_CLASS_COLORS[conn.aiClassification] || "var(--color-border)")
+            : "var(--color-muted-foreground)"
+
+          const isActiveEdge = !activeId || activeId === conn.userId || activeId === userId
+          const edgeOpacity  = isActiveEdge ? 0.65 : 0.10
+          const thickness    = 1 + (conn.score / maxScore) * 2.8
+
+          // Slight curve
+          const mx  = (src.x + tgt.x) / 2
+          const my  = (src.y + tgt.y) / 2
+          const len = Math.sqrt((tgt.x - src.x) ** 2 + (tgt.y - src.y) ** 2) || 1
+          const curvePx = len * 0.08
+          const nx  = -(tgt.y - src.y) / len
+          const ny  =  (tgt.x - src.x) / len
+
+          return (
+            <path
+              key={`edge-${conn.userId}`}
+              d={`M ${src.x.toFixed(1)} ${src.y.toFixed(1)} Q ${(mx + nx * curvePx).toFixed(1)} ${(my + ny * curvePx).toFixed(1)} ${tgt.x.toFixed(1)} ${tgt.y.toFixed(1)}`}
+              fill="none"
+              stroke={edgeColor}
+              strokeWidth={thickness}
+              strokeLinecap="round"
+              opacity={edgeOpacity}
+            />
+          )
+        })}
+
+        {/* ── Nodes ── */}
+        {nodes.map((node) => {
+          const profile      = allProfiles[node.id] || null
+          const isHighlighted = activeId === node.id || node.isCenter
+          const isDimmed      = !!activeId && !isHighlighted
+
+          return (
+            <NodeCircle
+              key={node.id}
+              node={node}
+              profile={profile}
+              isHighlighted={isHighlighted}
+              isDimmed={isDimmed}
+              onMouseEnter={(e) => {
+                if (node.isCenter) return
+                const rect = containerRef.current?.getBoundingClientRect()
+                if (rect) {
+                  setTooltip({ connId: node.id, mx: e.clientX - rect.left, my: e.clientY - rect.top })
+                }
+                setSelected(node.id)
+              }}
+              onMouseLeave={() => {
+                setTooltip(null)
+                setSelected(null)
+              }}
+              onClick={() => {
+                if (!node.isCenter) setSelected((s) => (s === node.id ? null : node.id))
+              }}
+            />
+          )
+        })}
+
+        {/* ── Node Labels ── */}
+        {nodes.map((node) => {
+          const profile      = allProfiles[node.id]
+          const name         = profile?.global_name || profile?.username || null
+          const labelY       = node.y + node.radius + 13
+          const isDimmed     = !!activeId && activeId !== node.id && !node.isCenter
+          const textOpacity  = isDimmed ? 0.20 : 1
+
+          return (
+            <g key={`lbl-${node.id}`} style={{ pointerEvents: "none", opacity: textOpacity }}>
+              {node.isCenter && (
+                <text
+                  x={node.x} y={node.y - node.radius - 14}
+                  textAnchor="middle"
+                  fill="var(--color-primary)"
+                  fontSize={9}
+                  fontWeight="700"
+                  letterSpacing="0.08em"
+                  style={{ userSelect: "none" }}
+                >
+                  TARGET
+                </text>
+              )}
+              {name && (
+                <text
+                  x={node.x} y={labelY}
+                  textAnchor="middle"
+                  fill="var(--color-foreground)"
+                  fontSize={node.isCenter ? 11 : 9}
+                  fontWeight={node.isCenter ? "600" : "500"}
+                  style={{ userSelect: "none" }}
+                >
+                  {name.length > 13 ? name.slice(0, 13) + "…" : name}
+                </text>
+              )}
+              <text
+                x={node.x}
+                y={name ? labelY + 10 : labelY}
+                textAnchor="middle"
+                fill="var(--color-muted-foreground)"
+                fontSize={7}
+                opacity={0.65}
+                style={{ userSelect: "none" }}
+              >
+                …{node.id.slice(-8)}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+
+      {/* ── Hover Tooltip ── */}
+      {tooltip && (() => {
+        const conn    = connections.find((c) => c.userId === tooltip.connId)
+        if (!conn) return null
+        const profile = relatedProfiles[conn.userId]
+        const name    = profile?.global_name || profile?.username || null
+        const hue     = userIdToHue(conn.userId)
+        const classColor = conn.aiClassification
+          ? (AI_CLASS_COLORS[conn.aiClassification] || "var(--color-muted-foreground)")
+          : "var(--color-muted-foreground)"
+
+        const ttW = 210
+        const ttX = Math.min(tooltip.mx + 14, size.w - ttW - 6)
+        const ttY = Math.max(8, tooltip.my - 70)
+
+        return (
+          <div
+            className="absolute pointer-events-none z-20 rounded-xl border border-border/80 bg-popover shadow-2xl p-3"
+            style={{ left: ttX, top: ttY, width: ttW }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <div
+                className="h-9 w-9 flex-shrink-0 rounded-full overflow-hidden border border-border"
+                style={{ background: `hsl(${hue}, 50%, 22%)` }}
+              >
+                {profile?.avatar_hash && (
+                  <img
+                    src={getAvatarUrl(conn.userId, profile.avatar_hash, 64)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
+                  />
+                )}
+                {!profile?.avatar_hash && (
+                  <div className="w-full h-full flex items-center justify-center text-white text-[11px] font-bold">
+                    {conn.userId.slice(-2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                {name && <p className="text-xs font-semibold truncate text-foreground">{name}</p>}
+                <p className="font-mono text-[10px] text-muted-foreground">…{conn.userId.slice(-10)}</p>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="space-y-1.5 border-t border-border pt-2">
+              <Row label="Score"    value={conn.score.toFixed(1)}        color="var(--color-chart-1)" />
+              <Row label="Messages" value={String(conn.messageInteractions)} />
+              {conn.voiceTime > 0 && (
+                <Row label="Voice Time" value={formatMs(conn.voiceTime)} />
+              )}
+              {conn.aiClassification && (
+                <Row
+                  label="Classification"
+                  value={AI_CLASS_LABELS[conn.aiClassification] || conn.aiClassification.replace(/_/g, " ")}
+                  color={classColor}
+                />
+              )}
+              {conn.aiConfidence != null && (
+                <div>
+                  <div className="flex justify-between text-[10px] mb-0.5">
+                    <span className="text-muted-foreground">Confidence</span>
+                    <span className="font-medium">{Math.round((conn.aiConfidence ?? 0) * 100)}%</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.round((conn.aiConfidence ?? 0) * 100)}%`, backgroundColor: classColor }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── Legend ── */}
+      <div className="absolute bottom-2.5 left-3 flex flex-wrap gap-1.5 max-w-[60%]">
+        {Object.entries(AI_CLASS_COLORS)
+          .filter(([key]) => connections.some((c) => c.aiClassification === key))
+          .map(([key, color]) => (
+            <div
+              key={key}
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] font-medium border"
+              style={{ borderColor: `${color}30`, backgroundColor: `${color}12`, color }}
+            >
+              <div className="w-3 h-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+              {AI_CLASS_LABELS[key] || key.replace(/_/g, " ")}
+            </div>
+          ))}
+      </div>
+
+      {/* ── Node count badge ── */}
+      <div className="absolute top-2.5 right-3 text-[10px] text-muted-foreground font-mono">
+        {displayed.length} connections
+      </div>
+    </div>
+  )
+}
+
+function Row({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="flex items-center justify-between text-[10px]">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold" style={{ color: color || "var(--color-foreground)" }}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
+// ── SocialTab ─────────────────────────────────────────────────────────────────
+
 function SocialTab({ userId }: { userId: string }) {
-  const { settings, cacheVersion } = useSentinel()
-  const [analyzing, setAnalyzing] = useState(false)
+  const { settings, cacheVersion, targetStatuses } = useSentinel()
+  const [analyzing, setAnalyzing]   = useState(false)
+  const [viewMode, setViewMode]     = useState<"graph" | "list">("graph")
 
   const { data, loading, error, refetch } = useApi(
     () => api.getSocialRelationships(userId),
@@ -478,6 +1089,16 @@ function SocialTab({ userId }: { userId: string }) {
     !!settings.sentinelToken
   )
 
+  // Collect IDs for profile fetching
+  const connectionIds = useMemo(
+    () => (data?.connections || []).slice(0, 14).map((c) => c.userId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [(data?.connections || []).slice(0, 14).map((c) => c.userId).join(",")]
+  )
+
+  const relatedProfiles = useRelatedProfiles(connectionIds, settings.sentinelToken)
+  const targetProfile   = targetStatuses[userId]?.profile || null
+
   const handleAnalyze = async () => {
     setAnalyzing(true)
     try {
@@ -490,23 +1111,54 @@ function SocialTab({ userId }: { userId: string }) {
 
   if (loading) return <Spinner />
   if (error)   return <EmptyState icon={Users} title="Error" message={error} />
-  if (!data || !data.connections?.length) return (
-    <EmptyState icon={Users} message="No social data yet. Needs interaction history to build a graph." />
-  )
+  if (!data || !data.connections?.length) {
+    return (
+      <EmptyState
+        icon={Users}
+        message="No social data yet. Needs interaction history to build a graph."
+      />
+    )
+  }
 
   const connections = data.connections.slice(0, 20)
   const maxScore    = connections[0]?.score || 1
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <StatCard value={data.connections.length} label="Connections"   color="var(--color-chart-1)" />
-        <StatCard value={data.totalInteractions}  label="Interactions"  color="var(--color-chart-3)" />
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-2">
+        <StatCard value={data.connections.length}  label="Connections"  color="var(--color-chart-1)" />
+        <StatCard value={data.totalInteractions}   label="Interactions" color="var(--color-chart-3)" />
         <StatCard value={data.aiAnalyzedCount ?? 0} label="AI Analyzed" color="var(--color-chart-5)" />
       </div>
 
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Top Connections</h3>
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 p-1">
+          <button
+            onClick={() => setViewMode("graph")}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all"
+            style={{
+              backgroundColor: viewMode === "graph" ? "var(--color-primary)" : "transparent",
+              color:           viewMode === "graph" ? "white" : "var(--color-muted-foreground)",
+            }}
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Graph
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all"
+            style={{
+              backgroundColor: viewMode === "list" ? "var(--color-primary)" : "transparent",
+              color:           viewMode === "list" ? "white" : "var(--color-muted-foreground)",
+            }}
+          >
+            <List className="h-3.5 w-3.5" />
+            List
+          </button>
+        </div>
+
         <Button
           size="sm"
           variant="outline"
@@ -519,88 +1171,173 @@ function SocialTab({ userId }: { userId: string }) {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0 divide-y">
-          {connections.map((conn, i) => {
-            const aiColor = conn.aiClassification
-              ? (AI_CLASS_COLORS[conn.aiClassification] || "var(--color-muted-foreground)")
-              : null
-            return (
-              <div
-                key={i}
-                className="flex items-center justify-between px-3 py-3 hover:bg-secondary/40 transition-colors"
-                style={{ minHeight: 52 }}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                    style={{
-                      background: "linear-gradient(135deg, var(--color-chart-1), var(--color-chart-5))",
-                      opacity: 0.5 + (conn.score / maxScore) * 0.5,
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                  <div className="min-w-0">
-                    <DiscordId type="user" id={conn.userId} textSize="text-xs" />
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[10px] text-muted-foreground capitalize">{conn.relationship}</span>
-                      {conn.aiClassification && aiColor && (
-                        <span
-                          className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border"
-                          style={{ color: aiColor, borderColor: `${aiColor}30`, backgroundColor: `${aiColor}15` }}
-                        >
-                          {conn.aiClassification.replace(/_/g, " ")}
-                        </span>
+      {/* ── Graph View ── */}
+      {viewMode === "graph" && (
+        <SocialForceGraph
+          userId={userId}
+          connections={connections}
+          relatedProfiles={relatedProfiles}
+          targetProfile={targetProfile}
+        />
+      )}
+
+      {/* ── List View ── */}
+      {viewMode === "list" && (
+        <Card>
+          <CardContent className="p-0 divide-y">
+            {connections.map((conn, i) => {
+              const profile  = relatedProfiles[conn.userId]
+              const name     = profile?.global_name || profile?.username || null
+              const hue      = userIdToHue(conn.userId)
+              const aiColor  = conn.aiClassification
+                ? (AI_CLASS_COLORS[conn.aiClassification] || "var(--color-muted-foreground)")
+                : null
+              const avatarUrl = profile?.avatar_hash
+                ? getAvatarUrl(conn.userId, profile.avatar_hash, 64)
+                : null
+
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-3 py-3 hover:bg-secondary/40 transition-colors"
+                  style={{ minHeight: 56 }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Rank */}
+                    <div
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                      style={{
+                        background: "linear-gradient(135deg, var(--color-chart-1), var(--color-chart-5))",
+                        opacity: 0.5 + (conn.score / maxScore) * 0.5,
+                      }}
+                    >
+                      {i + 1}
+                    </div>
+
+                    {/* Avatar */}
+                    <div
+                      className="h-9 w-9 flex-shrink-0 rounded-full overflow-hidden border border-border"
+                      style={{ background: `hsl(${hue}, 50%, 22%)` }}
+                    >
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white text-[10px] font-bold">
+                          {conn.userId.slice(-2).toUpperCase()}
+                        </div>
                       )}
                     </div>
-                    {conn.aiConfidence !== null && conn.aiConfidence !== undefined && (
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <div className="h-1 w-16 rounded-full bg-secondary overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${Math.round(conn.aiConfidence * 100)}%`, backgroundColor: aiColor || "var(--color-chart-1)" }}
-                          />
-                        </div>
-                        <span className="text-[9px] text-muted-foreground">{Math.round((conn.aiConfidence ?? 0) * 100)}%</span>
+
+                    {/* Name + ID */}
+                    <div className="min-w-0">
+                      {name && (
+                        <p className="text-sm font-semibold truncate leading-tight">{name}</p>
+                      )}
+                      <DiscordId type="user" id={conn.userId} textSize="text-[10px]" />
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground capitalize">{conn.relationship}</span>
+                        {conn.aiClassification && aiColor && (
+                          <span
+                            className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border"
+                            style={{ color: aiColor, borderColor: `${aiColor}30`, backgroundColor: `${aiColor}15` }}
+                          >
+                            {(AI_CLASS_LABELS[conn.aiClassification] || conn.aiClassification).replace(/_/g, " ")}
+                          </span>
+                        )}
                       </div>
-                    )}
+                      {conn.aiConfidence !== null && conn.aiConfidence !== undefined && (
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <div className="h-1 w-16 rounded-full bg-secondary overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${Math.round(conn.aiConfidence * 100)}%`,
+                                backgroundColor: aiColor || "var(--color-chart-1)",
+                              }}
+                            />
+                          </div>
+                          <span className="text-[9px] text-muted-foreground">
+                            {Math.round((conn.aiConfidence ?? 0) * 100)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right text-xs text-muted-foreground flex-shrink-0 ml-2">
+                    <p className="font-semibold" style={{ color: "var(--color-chart-1)" }}>
+                      {conn.score.toFixed(1)}
+                    </p>
+                    <p className="hidden sm:block text-[10px]">{conn.messageInteractions}msg</p>
                   </div>
                 </div>
-                <div className="text-right text-xs text-muted-foreground flex-shrink-0 ml-2">
-                  <p className="font-semibold" style={{ color: "var(--color-chart-1)" }}>
-                    {conn.score.toFixed(1)}
-                  </p>
-                  <p className="hidden sm:block text-[10px]">{conn.messageInteractions}msg</p>
-                </div>
-              </div>
-            )
-          })}
-        </CardContent>
-      </Card>
+              )
+            })}
+          </CardContent>
+        </Card>
+      )}
 
+      {/* Relationship change history */}
       {changes && changes.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Relationship Changes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {changes.slice(0, 10).map((ch, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2">
-                <div className="min-w-0">
-                  <DiscordId type="user" id={ch.other_user_id} textSize="text-[10px]" />
-                  <span
-                    className="text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded"
-                    style={{ color: AI_CLASS_COLORS[ch.classification] || "var(--color-muted-foreground)" }}
-                  >
-                    {ch.classification.replace(/_/g, " ")}
+            {changes.slice(0, 10).map((ch, i) => {
+              const profile  = relatedProfiles[ch.other_user_id]
+              const name     = profile?.global_name || profile?.username || null
+              const hue      = userIdToHue(ch.other_user_id)
+              const avatarUrl = profile?.avatar_hash
+                ? getAvatarUrl(ch.other_user_id, profile.avatar_hash, 64)
+                : null
+              const color = AI_CLASS_COLORS[ch.classification] || "var(--color-muted-foreground)"
+
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="h-7 w-7 flex-shrink-0 rounded-full overflow-hidden border border-border"
+                      style={{ background: `hsl(${hue}, 50%, 22%)` }}
+                    >
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white text-[9px] font-bold">
+                          {ch.other_user_id.slice(-2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      {name && <p className="text-xs font-medium truncate">{name}</p>}
+                      <DiscordId type="user" id={ch.other_user_id} textSize="text-[10px]" />
+                    </div>
+                    <span
+                      className="text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded flex-shrink-0"
+                      style={{ color }}
+                    >
+                      {(AI_CLASS_LABELS[ch.classification] || ch.classification).replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                    {new Date(ch.recorded_at).toLocaleDateString()}
                   </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                  {new Date(ch.recorded_at).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </CardContent>
         </Card>
       )}
@@ -630,15 +1367,17 @@ function CategoriesTab({ userId }: { userId: string }) {
 
   if (loading) return <Spinner />
   if (error)   return <EmptyState icon={Tag} title="Error" message={error} />
-  if (!data || data.length === 0) return (
-    <EmptyState
-      icon={Tag}
-      title="No Categories Yet"
-      message="Message categories are computed by AI. Set AI_PROVIDER in your selfbot .env to enable automatic categorization."
-    />
-  )
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState
+        icon={Tag}
+        title="No Categories Yet"
+        message="Message categories are computed by AI. Set AI_PROVIDER in your selfbot .env to enable automatic categorization."
+      />
+    )
+  }
 
-  const total = data.reduce((s, c) => s + c.count, 0)
+  const total   = data.reduce((s, c) => s + c.count, 0)
   const pieData = data.map((c) => ({
     label: c.category,
     value: c.count,
@@ -670,7 +1409,7 @@ function CategoriesTab({ userId }: { userId: string }) {
                 .slice()
                 .sort((a, b) => b.count - a.count)
                 .map((c) => {
-                  const pct = total > 0 ? (c.count / total) * 100 : 0
+                  const pct   = total > 0 ? (c.count / total) * 100 : 0
                   const color = CATEGORY_COLORS[c.category] || "var(--color-muted-foreground)"
                   return (
                     <div key={c.category} className="space-y-1">
@@ -722,24 +1461,28 @@ function BaselinesTab({ userId }: { userId: string }) {
 
   if (loading) return <Spinner />
   if (error)   return <EmptyState icon={TrendingUp} title="Error" message={error} />
-  if (!data || data.length === 0) return (
-    <EmptyState
-      icon={TrendingUp}
-      title="No Baselines Computed"
-      message="Behavioral baselines require at least 7 days of data. Click Recompute to trigger computation."
-      action={
-        <Button size="sm" onClick={handleRecompute} disabled={recomputing}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${recomputing ? "animate-spin" : ""}`} />
-          {recomputing ? "Computing…" : "Recompute Baselines"}
-        </Button>
-      }
-    />
-  )
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState
+        icon={TrendingUp}
+        title="No Baselines Computed"
+        message="Behavioral baselines require at least 7 days of data. Click Recompute to trigger computation."
+        action={
+          <Button size="sm" onClick={handleRecompute} disabled={recomputing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${recomputing ? "animate-spin" : ""}`} />
+            {recomputing ? "Computing…" : "Recompute Baselines"}
+          </Button>
+        }
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">{data.length} metrics · {data[0]?.data_window_days ?? 30}-day window</p>
+        <p className="text-xs text-muted-foreground">
+          {data.length} metrics · {data[0]?.data_window_days ?? 30}-day window
+        </p>
         <Button size="sm" variant="outline" onClick={handleRecompute} disabled={recomputing} className="h-8 text-xs">
           <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${recomputing ? "animate-spin" : ""}`} />
           {recomputing ? "Computing…" : "Recompute"}
@@ -748,7 +1491,10 @@ function BaselinesTab({ userId }: { userId: string }) {
       <Card className="overflow-hidden">
         <div className="divide-y">
           {data.map((b) => (
-            <div key={b.metric_name} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors">
+            <div
+              key={b.metric_name}
+              className="flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
+            >
               <div className="min-w-0">
                 <p className="text-sm font-medium capitalize">{b.metric_name.replace(/_/g, " ")}</p>
                 <p className="text-[10px] text-muted-foreground">
