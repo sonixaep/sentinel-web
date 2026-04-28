@@ -14,6 +14,7 @@
     </td>
   </tr>
 </table>
+
 Part of the [Sentinel](https://github.com/Privex-chat/sentinel) project.
 <p align="center">
   <a href="https://sentinel-panel.vercel.app"><img src="https://img.shields.io/badge/demo-live-brightgreen" alt="Live demo"></a>
