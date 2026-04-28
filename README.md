@@ -1,7 +1,7 @@
 <p align="center">
   <img src="web-demo.gif" alt="sentinel-web dashboard demo" width="720">
 </p>
-Part of the [Sentinel](https://github.com/Privex-chat/sentinel) project.
+
 <table align="center">
   <tr>
     <td>
@@ -14,7 +14,7 @@ Part of the [Sentinel](https://github.com/Privex-chat/sentinel) project.
     </td>
   </tr>
 </table>
-
+Part of the [Sentinel](https://github.com/Privex-chat/sentinel) project.
 <p align="center">
   <a href="https://sentinel-panel.vercel.app"><img src="https://img.shields.io/badge/demo-live-brightgreen" alt="Live demo"></a>
   <a href="https://github.com/Privex-chat/sentinel-web"><img src="https://img.shields.io/github/stars/Privex-chat/sentinel-web?style=social" alt="GitHub stars"></a>
