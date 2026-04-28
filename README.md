@@ -5,7 +5,7 @@
 <table align="center">
   <tr>
     <td>
-      <img src="https://raw.githubusercontent.com/Privex-chat/sentinel/main/assets/logo.png" alt="Sentinel Logo" width="120" style="vertical-align: middle;">
+      <img src="https://raw.githubusercontent.com/Privex-chat/sentinel/main/assets/logo.png" alt="Sentinel Logo" width="200" style="vertical-align: middle;">
     </td>
     <td>
       <h1>🌐 sentinel-web</h1>
