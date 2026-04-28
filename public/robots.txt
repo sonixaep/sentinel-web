@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /targets
+Disallow: /alerts
+Disallow: /settings
 
 Sitemap: https://sentinel-panel.vercel.app/sitemap.xml
