@@ -1,5 +1,8 @@
 User-agent: *
+
 Allow: /
+Allow: /setup
+
 Disallow: /targets
 Disallow: /alerts
 Disallow: /settings
