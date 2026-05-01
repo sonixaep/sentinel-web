@@ -23,10 +23,14 @@ const securityHeaders = [
   },
 ]
 
+// Desktop build sets DESKTOP_BUILD=true to produce a static export.
+// Normal builds (Vercel, dev) use standard SSR mode.
+const isDesktop = process.env.DESKTOP_BUILD === "true"
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
-    unoptimized: true,
+    unoptimized: isDesktop,
     remotePatterns: [
       {
         protocol: "https",
@@ -35,16 +39,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  output: "export",
-  trailingSlash: true,
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: securityHeaders,
-      },
-    ]
-  },
+  // Static export only for desktop packaging
+  ...(isDesktop ? { output: "export" as const, trailingSlash: true } : {}),
+  // Security headers only for server deployments (incompatible with static export)
+  ...(!isDesktop
+    ? {
+        async headers() {
+          return [
+            {
+              source: "/(.*)",
+              headers: securityHeaders,
+            },
+          ]
+        },
+      }
+    : {}),
 }
 
 export default nextConfig
