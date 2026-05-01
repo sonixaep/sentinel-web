@@ -26,6 +26,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -34,7 +35,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  output: "standalone",
+  output: "export",
+  trailingSlash: true,
   async headers() {
     return [
       {
