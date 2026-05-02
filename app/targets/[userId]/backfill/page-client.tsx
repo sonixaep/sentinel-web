@@ -2,14 +2,13 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatDateTime } from "@/lib/utils"
@@ -26,8 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 }
 
 export default function BackfillPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
   const { settings } = useSentinel()
   const [starting, setStarting] = useState(false)
   const [customMode, setCustomMode] = useState<"new_channels" | "full_reset" | null>(null)

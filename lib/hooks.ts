@@ -1,7 +1,8 @@
 /* lib/hooks.ts */
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useParams } from "next/navigation"
 
 interface UseApiState<T> {
   data: T | null
@@ -62,6 +63,39 @@ export function useApi<T>(
   }, [fetchData, immediate])
 
   return { ...state, refetch: fetchData }
+}
+
+/**
+ * Returns the target userId from the URL.
+ *
+ * In Next.js static export mode (used by the Electron desktop build),
+ * `useParams()` can return the build-time placeholder `"_"` because the
+ * RSC flight data is baked with that value.  When that happens we fall
+ * back to parsing `window.location.pathname` which always reflects the
+ * real URL the user navigated to.
+ *
+ * On Vercel (SSR), `useParams()` always returns the correct value, so
+ * the fallback never activates.
+ */
+export function useTargetUserId(): string {
+  const params = useParams()
+  const raw = params.userId as string | undefined
+
+  return useMemo(() => {
+    if (raw && raw !== "_") return raw
+
+    // Fallback: extract from the URL path
+    if (typeof window !== "undefined") {
+      const match = window.location.pathname.match(/\/targets\/([^/]+)/)
+      if (match && match[1] !== "_") return match[1]
+
+      // For custom protocols (sentinel://app/targets/123) also check href
+      const hrefMatch = window.location.href.match(/\/targets\/([^/]+)/)
+      if (hrefMatch && hrefMatch[1] !== "_") return hrefMatch[1]
+    }
+
+    return raw || "_"
+  }, [raw])
 }
 
 export function useDebounce<T>(value: T, delay: number): T {

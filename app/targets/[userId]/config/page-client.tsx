@@ -2,20 +2,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { Settings2, CheckCircle } from "lucide-react"
 import type { TargetConfig } from "@/lib/types"
 
 export default function ConfigPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
   const { settings } = useSentinel()
 
   const { data, loading, error, refetch } = useApi(

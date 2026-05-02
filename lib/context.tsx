@@ -86,30 +86,60 @@ export function SentinelProvider({ children }: { children: ReactNode }) {
 
   const cacheDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Hydrate settings from localStorage ─────────────────────────────────────
+  // ── Hydrate settings from localStorage (+ Electron desktop bridge) ──────
   useEffect(() => {
-    const savedUrl      = lsGet(LS_KEYS.url)
-    const savedToken    = lsGet(LS_KEYS.token)
-    const savedInterval = lsGet(LS_KEYS.interval)
-    const savedSSE      = lsGet(LS_KEYS.sse)
-    const savedNotifs   = lsGet(LS_KEYS.notifs)
+    let cancelled = false
 
-    const updates: Partial<Settings> = {}
-    if (savedUrl)                  updates.sentinelUrl = savedUrl
-    if (savedToken)                updates.sentinelToken = savedToken
-    if (savedInterval) {
-      const parsed = parseInt(savedInterval, 10)
-      if (!isNaN(parsed) && parsed >= 5 && parsed <= 300) {
-        updates.dashboardRefreshInterval = parsed
+    async function hydrate() {
+      const updates: Partial<Settings> = {}
+
+      // In the Electron desktop app the preload exposes window.sentinel with
+      // a getApiInfo() method that returns { port, authToken } directly from
+      // the main process.  This is more reliable than localStorage because
+      // the custom sentinel:// protocol may not persist storage across
+      // sessions the same way http:// origins do.
+      const bridge = (window as unknown as Record<string, unknown>).sentinel as
+        | { getApiInfo?: () => Promise<{ port: number; authToken: string }> }
+        | undefined
+
+      if (bridge?.getApiInfo) {
+        try {
+          const info = await bridge.getApiInfo()
+          if (!cancelled && info?.port && info?.authToken) {
+            updates.sentinelUrl   = `http://localhost:${info.port}`
+            updates.sentinelToken = info.authToken
+          }
+        } catch {
+          // fall through to localStorage
+        }
       }
-    }
-    if (savedSSE   !== null) updates.enableSSE                = savedSSE === "true"
-    if (savedNotifs !== null) updates.showDesktopNotifications = savedNotifs === "true"
 
-    if (Object.keys(updates).length > 0) {
-      setSettings((s) => ({ ...s, ...updates }))
+      // Standard localStorage hydration (fills anything the bridge didn't)
+      const savedUrl      = lsGet(LS_KEYS.url)
+      const savedToken    = lsGet(LS_KEYS.token)
+      const savedInterval = lsGet(LS_KEYS.interval)
+      const savedSSE      = lsGet(LS_KEYS.sse)
+      const savedNotifs   = lsGet(LS_KEYS.notifs)
+
+      if (!updates.sentinelUrl   && savedUrl)   updates.sentinelUrl   = savedUrl
+      if (!updates.sentinelToken && savedToken)  updates.sentinelToken = savedToken
+      if (savedInterval) {
+        const parsed = parseInt(savedInterval, 10)
+        if (!isNaN(parsed) && parsed >= 5 && parsed <= 300) {
+          updates.dashboardRefreshInterval = parsed
+        }
+      }
+      if (savedSSE   !== null) updates.enableSSE                = savedSSE === "true"
+      if (savedNotifs !== null) updates.showDesktopNotifications = savedNotifs === "true"
+
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setSettings((s) => ({ ...s, ...updates }))
+      }
+      if (!cancelled) setHydrated(true)
     }
-    setHydrated(true)
+
+    hydrate()
+    return () => { cancelled = true }
   }, [])
 
   // ── Keep API config in sync ─────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 /* app/targets/[userId]/target-layout-client.tsx */
 "use client"
 
-import { useParams, usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { AppShell } from "@/components/layout/app-shell"
@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useSentinel } from "@/lib/context"
+import { useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import {
@@ -42,9 +43,8 @@ const tabs = [
 ]
 
 export default function TargetLayoutClient({ children }: { children: React.ReactNode }) {
-  const params   = useParams()
   const pathname = usePathname()
-  const userId   = params.userId as string
+  const userId   = useTargetUserId()
   const { targetStatuses, targets, refreshTargets } = useSentinel()
 
   const status       = targetStatuses[userId]

@@ -2,12 +2,11 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatDateTime } from "@/lib/utils"
@@ -15,8 +14,7 @@ import { FileText, RefreshCw, Calendar } from "lucide-react"
 import type { DailyBrief } from "@/lib/types"
 
 export default function BriefsPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
   const { settings } = useSentinel()
   const [generating, setGenerating] = useState(false)
   const [dateInput, setDateInput] = useState("")

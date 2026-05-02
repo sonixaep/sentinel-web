@@ -2,14 +2,13 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
 import { TimelineBar } from "@/components/charts/timeline-bar"
-import { useApi, useDebounce } from "@/lib/hooks"
+import { useApi, useDebounce, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatTime, formatDate } from "@/lib/utils"
@@ -17,8 +16,7 @@ import { EVENT_COLORS, EVENT_LABELS, STATUS_COLORS } from "@/lib/types"
 import { Clock, Filter, ChevronLeft, ChevronRight, ExternalLink, Search, Calendar, X } from "lucide-react"
 
 export default function TimelinePage() {
-  const params  = useParams()
-  const userId  = params.userId as string
+  const userId  = useTargetUserId()
   const { settings } = useSentinel()
 
   // List mode state

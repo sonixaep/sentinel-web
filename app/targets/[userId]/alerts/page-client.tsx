@@ -2,7 +2,6 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Switch } from "@/components/ui/switch"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { ALERT_TYPES } from "@/lib/types"
@@ -18,8 +17,7 @@ import { formatDateTime } from "@/lib/utils"
 import { Bell, Plus, Trash2, Check, Volume2, VolumeX } from "lucide-react"
 
 export default function TargetAlertsPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
   const { settings } = useSentinel()
   const [newType, setNewType] = useState<string>("COMES_ONLINE")
   const [digestMode, setDigestMode] = useState(false)

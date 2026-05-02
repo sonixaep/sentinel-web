@@ -1,7 +1,6 @@
 /* app/targets/[userId]/analytics/page.tsx */
 "use client"
 
-import { useParams } from "next/navigation"
 import { useState, useEffect, useRef, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -12,7 +11,7 @@ import { LineChart } from "@/components/charts/line-chart"
 import { BarChart } from "@/components/charts/bar-chart"
 import { PieChart } from "@/components/charts/pie-chart"
 import { Heatmap } from "@/components/charts/heatmap"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatMs, getAvatarUrl, userIdToHue } from "@/lib/utils"
@@ -26,8 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 export default function AnalyticsPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
 
   return (
     <Tabs defaultValue="presence">

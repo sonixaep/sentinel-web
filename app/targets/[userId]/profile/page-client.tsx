@@ -2,13 +2,12 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
 import { DiscordId } from "@/components/ui/discord-id"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatDateTime, getAvatarUrl, getBannerUrl, userIdToHue } from "@/lib/utils"
@@ -16,8 +15,7 @@ import type { ProfileSnapshot } from "@/lib/types"
 import { User, LinkIcon, ExternalLink } from "lucide-react"
 
 export default function ProfilePage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
   const { settings } = useSentinel()
 
   const { data, loading, error } = useApi(

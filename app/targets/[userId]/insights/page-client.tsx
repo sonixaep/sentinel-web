@@ -1,22 +1,20 @@
 /* app/targets/[userId]/insights/page.tsx */
 "use client"
 
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Heatmap } from "@/components/charts/heatmap"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatDate } from "@/lib/utils"
 import { Brain, Moon, Calendar, AlertTriangle, GitBranch } from "lucide-react"
 
 export default function InsightsPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
 
   return (
     <Tabs defaultValue="overview">

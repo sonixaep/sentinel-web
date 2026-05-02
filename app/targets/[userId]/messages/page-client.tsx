@@ -2,14 +2,13 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Spinner } from "@/components/ui/spinner"
 import { EmptyState } from "@/components/ui/empty-state"
 import { DiscordId } from "@/components/ui/discord-id"
-import { useApi, useDebounce } from "@/lib/hooks"
+import { useApi, useDebounce, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatDateTime } from "@/lib/utils"
@@ -18,8 +17,7 @@ import { MessageSquare, Search, Trash2, Edit, Ghost, Tag } from "lucide-react"
 const MESSAGE_CATEGORIES = ["gaming", "music", "emotional", "humor", "planning", "question", "general"] as const
 
 export default function MessagesPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("")
 

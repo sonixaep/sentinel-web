@@ -1,10 +1,9 @@
 /* app/targets/[userId]/page.tsx */
 "use client"
 
-import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useApi } from "@/lib/hooks"
+import { useApi, useTargetUserId } from "@/lib/hooks"
 import { api } from "@/lib/api"
 import { useSentinel } from "@/lib/context"
 import { formatRelative } from "@/lib/utils"
@@ -18,8 +17,7 @@ import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 
 export default function TargetOverviewPage() {
-  const params = useParams()
-  const userId = params.userId as string
+  const userId = useTargetUserId()
   const { targetStatuses, targets, cacheVersion, settings } = useSentinel()
 
   const status = targetStatuses[userId]
