@@ -7,6 +7,10 @@ export function SwRegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
 
+    // Service workers don't work on custom protocols (sentinel://) — skip in Electron desktop
+    const proto = window.location.protocol
+    if (proto !== "http:" && proto !== "https:") return
+
     const register = async () => {
       try {
         const registration = await navigator.serviceWorker.register("/sw.js", {
